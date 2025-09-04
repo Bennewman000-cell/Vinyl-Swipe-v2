@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mezabel's Vinyl Discovery</title>
+    <!-- Add download instructions -->
+    <meta name="description" content="Vinyl Discovery App - Save this page as HTML to use on your phone">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Lucide React icons as simple SVG components
+        const Filter = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"></polygon>
+            </svg>
+        );
+
+        const Heart = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+        );
+
+        const Music = ({ size = 48 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+        );
+
+        const ThumbsUp = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+            </svg>
+        );
+
+        const ThumbsDown = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2 2 0 0 1-2 2H17"></path>
+            </svg>
+        );
+
+        const SkipForward = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="5,4 15,12 5,20"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+        );
+
+        const SkipBack = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="19,20 9,12 19,4"></polygon>
+                <line x1="5" y1="19" x2="5" y2="5"></line>
+            </svg>
+        );
+
+        const DiscogsMusicApp = () => {
+            const [currentTrack, setCurrentTrack] = useState(0);
+            const [tracks, setTracks] = useState([]);
+            const [likedTracks, setLikedTracks] = useState([]);
+            const [showFilters, setShowFilters] = useState(false);
+            const [showLiked, setShowLiked] = useState(false);
+            const [autoPlay, setAutoPlay] = useState(false);
+
+            // Enhanced mock data with real YouTube videos
+            const mockTracks = [
+                {
+                    id: 1,
+                    title: "Born Slippy (Nuxx)",
+                    artist: "Underworld",
+                    label: "Junior Boy's Own",
+                    year: 1995,
+                    price: 15.50,
+                    genre: "Electronic",
+                    style: "Techno",
+                    format: "12\"",
+                    videoUrl: "https://www.youtube.com/embed/iTFrCbQGyvM",
+                    wantlist: 245,
+                    collection: 520,
+                    ratio: 0.471
+                },
+                {
+                    id: 2,
+                    title: "Sandstorm",
+                    artist: "Darude",
+                    label: "16 Inch Records",
+                    year: 1999,
+                    price: 12.99,
+                    genre: "Electronic",
+                    style: "Trance",
+                    format: "12\"",
+                    videoUrl: "https://www.youtube.com/embed/y6120QOlsfU",
+                    wantlist: 180,
+                    collection: 450,
+                    ratio: 0.400
+                },
+                {
+                    id: 3,
+                    title: "One More Time",
+                    artist: "Daft Punk",
+                    label: "Virgin",
+                    year: 2000,
+                    price: 18.00,
+                    genre: "Electronic",
+                    style: "French House",
+                    format: "12\"",
+                    videoUrl: "https://www.youtube.com/embed/FGBhQbmPwH8",
+                    wantlist: 320,
+                    collection: 780,
+                    ratio: 0.410
+                },
+                {
+                    id: 4,
+                    title: "Blue Monday",
+                    artist: "New Order",
+                    label: "Factory Records",
+                    year: 1983,
+                    price: 22.50,
+                    genre: "Electronic",
+                    style: "Synth-pop",
+                    format: "12\"",
+                    videoUrl: "https://www.youtube.com/embed/FYH8DsU2WCk",
+                    wantlist: 420,
+                    collection: 890,
+                    ratio: 0.472
+                },
+                {
+                    id: 5,
+                    title: "Acid Tracks",
+                    artist: "Phuture",
+                    label: "Trax Records",
+                    year: 1987,
+                    price: 35.00,
+                    genre: "Electronic",
+                    style: "Acid House",
+                    format: "12\"",
+                    videoUrl: "https://www.youtube.com/embed/_3pHzKLBIWM",
+                    wantlist: 180,
+                    collection: 320,
+                    ratio: 0.563
+                }
+            ];
+
+            useEffect(() => {
+                setTracks(mockTracks);
+                // Load liked tracks from localStorage
+                const saved = localStorage.getItem('likedTracks');
+                if (saved) {
+                    setLikedTracks(JSON.parse(saved));
+                }
+            }, []);
+
+            const handleLike = (liked) => {
+                const track = tracks[currentTrack];
+                if (liked && !likedTracks.find(t => t.id === track.id)) {
+                    const newLiked = [...likedTracks, track];
+                    setLikedTracks(newLiked);
+                    localStorage.setItem('likedTracks', JSON.stringify(newLiked));
+                }
+                nextTrack();
+            };
+
+            const nextTrack = () => {
+                setCurrentTrack(prev => Math.min(prev + 1, tracks.length - 1));
+            };
+
+            const prevTrack = () => {
+                setCurrentTrack(prev => Math.max(prev - 1, 0));
+            };
+
+            const skipTracks = (count) => {
+                setCurrentTrack(prev => Math.min(prev + count, tracks.length - 1));
+            };
+
+            const goToLikedTrack = (likedTrack) => {
+                const index = tracks.findIndex(t => t.id === likedTrack.id);
+                if (index !== -1) {
+                    setCurrentTrack(index);
+                    setShowLiked(false);
+                }
+            };
+
+            const track = tracks[currentTrack];
+
+            return (
+                <div className="max-w-md mx-auto bg-gray-900 text-white min-h-screen">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4">
+                        <h1 className="text-xl font-bold text-center">Mezabel's Vinyl</h1>
+                        <p className="text-center text-sm opacity-80">Top Picks by Want/Have Ratio</p>
+                    </div>
+
+                    {/* Filter & Settings Bar */}
+                    <div className="flex justify-between items-center p-4 bg-gray-800">
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="flex items-center space-x-2 px-3 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            <Filter size={16} />
+                            <span>Filters</span>
+                        </button>
+                        
+                        <button
+                            onClick={() => setShowLiked(!showLiked)}
+                            className="flex items-center space-x-2 px-3 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            <Heart size={16} />
+                            <span>{likedTracks.length}</span>
+                        </button>
+                    </div>
+
+                    {/* Filters Panel */}
+                    {showFilters && (
+                        <div className="bg-gray-800 p-4 border-b border-gray-700">
+                            <h3 className="font-semibold mb-2">Settings</h3>
+                            <div className="space-y-2 text-sm">
+                                <label className="flex items-center">
+                                    <input type="checkbox" className="mr-2" />
+                                    Electronic Music Only
+                                </label>
+                                <label className="flex items-center">
+                                    <input type="checkbox" className="mr-2" />
+                                    12" Singles Only
+                                </label>
+                                <label className="flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={autoPlay}
+                                        onChange={(e) => setAutoPlay(e.target.checked)}
+                                        className="mr-2" 
+                                    />
+                                    Auto-play Videos
+                                </label>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Liked Tracks Panel */}
+                    {showLiked && (
+                        <div className="bg-gray-800 p-4 border-b border-gray-700 max-h-60 overflow-y-auto">
+                            <h3 className="font-semibold mb-2">Liked Tracks ({likedTracks.length})</h3>
+                            {likedTracks.length === 0 ? (
+                                <p className="text-gray-400 text-sm">No liked tracks yet. Start exploring!</p>
+                            ) : (
+                                likedTracks.map((track, index) => (
+                                    <div 
+                                        key={track.id} 
+                                        className="text-sm py-2 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-700 rounded px-2"
+                                        onClick={() => goToLikedTrack(track)}
+                                    >
+                                        <div className="font-medium">{track.artist} - {track.title}</div>
+                                        <div className="text-gray-400">${track.price} • {track.year}</div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {/* Main Content */}
+                    {track && (
+                        <div className="p-4">
+                            {/* Video Player */}
+                            <div className="mb-4">
+                                <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                                    {track.videoUrl ? (
+                                        <iframe
+                                            width="100%"
+                                            height="100%"
+                                            src={`${track.videoUrl}${autoPlay ? '?autoplay=1' : ''}`}
+                                            frameBorder="0"
+                                            allowFullScreen
+                                            className="w-full h-full"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center justify-center h-full">
+                                            <div className="text-center">
+                                                <Music size={48} className="mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm opacity-50">No video available</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Track Info */}
+                            <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                                <h2 className="text-lg font-bold mb-1">{track.title}</h2>
+                                <p className="text-gray-300 mb-3">{track.artist}</p>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                        <span className="text-gray-400">Label:</span> {track.label}
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400">Year:</span> {track.year}
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400">Price:</span> ${track.price}
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400">Format:</span> {track.format}
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400">Genre:</span> {track.genre}
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400">Style:</span> {track.style}
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-3 pt-3 border-t border-gray-700">
+                                    <div className="text-sm">
+                                        <div className="flex justify-between">
+                                            <span>Want: {track.wantlist}</span>
+                                            <span>Have: {track.collection}</span>
+                                        </div>
+                                        <div className="text-center mt-1">
+                                            <span className="text-green-400 font-semibold">Ratio: {track.ratio.toFixed(3)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Like/Dislike Buttons */}
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <button
+                                    onClick={() => handleLike(true)}
+                                    className="flex items-center justify-center space-x-2 py-4 bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors active:bg-green-800"
+                                >
+                                    <ThumbsUp size={24} />
+                                    <span>Like</span>
+                                </button>
+                                <button
+                                    onClick={() => handleLike(false)}
+                                    className="flex items-center justify-center space-x-2 py-4 bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors active:bg-red-800"
+                                >
+                                    <ThumbsDown size={24} />
+                                    <span>Pass</span>
+                                </button>
+                            </div>
+
+                            {/* Navigation */}
+                            <div className="grid grid-cols-4 gap-2 mb-4">
+                                <button
+                                    onClick={prevTrack}
+                                    className="flex items-center justify-center py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors active:bg-gray-800"
+                                    disabled={currentTrack === 0}
+                                >
+                                    <SkipBack size={20} />
+                                </button>
+                                <button
+                                    onClick={nextTrack}
+                                    className="flex items-center justify-center py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors active:bg-gray-800"
+                                    disabled={currentTrack === tracks.length - 1}
+                                >
+                                    <SkipForward size={20} />
+                                </button>
+                                <button
+                                    onClick={() => skipTracks(2)}
+                                    className="py-3 bg-blue-600 rounded-lg text-sm hover:bg-blue-700 transition-colors active:bg-blue-800"
+                                >
+                                    +2
+                                </button>
+                                <button
+                                    onClick={() => skipTracks(3)}
+                                    className="py-3 bg-blue-600 rounded-lg text-sm hover:bg-blue-700 transition-colors active:bg-blue-800"
+                                >
+                                    +3
+                                </button>
+                            </div>
+
+                            {/* Progress */}
+                            <div className="text-center text-sm text-gray-400">
+                                Track {currentTrack + 1} of {tracks.length}
+                                <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+                                    <div
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${((currentTrack + 1) / tracks.length) * 100}%` }}
+                                    ></div>
+                                </div>
+                                <div className="mt-2 text-xs">
+                                    {Math.round(((currentTrack + 1) / tracks.length) * 100)}% complete
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<DiscogsMusicApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
