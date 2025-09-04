@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mezabel's Vinyl Discovery</title>
-    <!-- Add download instructions -->
-    <meta name="description" content="Vinyl Discovery App - Save this page as HTML to use on your phone">
+    <title>Discogs Vinyl Discovery App</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -20,7 +20,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Lucide React icons as simple SVG components
+        // Icons
         const Filter = ({ size = 20 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"></polygon>
@@ -38,6 +38,13 @@
                 <path d="9 18V5l12-2v13"></path>
                 <circle cx="6" cy="18" r="3"></circle>
                 <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+        );
+
+        const Settings = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
         );
 
@@ -67,101 +74,396 @@
             </svg>
         );
 
+        const Loader = () => (
+            <svg className="loading w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+            </svg>
+        );
+
+        // Configuration Component
+        const ConfigPanel = ({ config, setConfig, onSave, onCancel }) => (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+                    <h2 className="text-xl font-bold mb-4">App Configuration</h2>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Discogs Token *</label>
+                            <input
+                                type="text"
+                                value={config.token}
+                                onChange={(e) => setConfig({...config, token: e.target.value})}
+                                className="w-full p-2 bg-gray-700 rounded text-white"
+                                placeholder="Your Discogs API token"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">
+                                Get from: discogs.com → Settings → Developers
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Seller Username *</label>
+                            <input
+                                type="text"
+                                value={config.seller}
+                                onChange={(e) => setConfig({...config, seller: e.target.value})}
+                                className="w-full p-2 bg-gray-700 rounded text-white"
+                                placeholder="mezabel"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Year From</label>
+                                <input
+                                    type="number"
+                                    value={config.year_from}
+                                    onChange={(e) => setConfig({...config, year_from: parseInt(e.target.value) || 1990})}
+                                    className="w-full p-2 bg-gray-700 rounded text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Max Price ($)</label>
+                                <input
+                                    type="number"
+                                    value={config.max_price}
+                                    onChange={(e) => setConfig({...config, max_price: parseInt(e.target.value) || 20})}
+                                    className="w-full p-2 bg-gray-700 rounded text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Fetch Items</label>
+                                <input
+                                    type="number"
+                                    value={config.fetch_items}
+                                    onChange={(e) => setConfig({...config, fetch_items: parseInt(e.target.value) || 1000})}
+                                    className="w-full p-2 bg-gray-700 rounded text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Top Items</label>
+                                <input
+                                    type="number"
+                                    value={config.top_items}
+                                    onChange={(e) => setConfig({...config, top_items: parseInt(e.target.value) || 50})}
+                                    className="w-full p-2 bg-gray-700 rounded text-white"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Sort Method</label>
+                            <select
+                                value={config.sort_method}
+                                onChange={(e) => setConfig({...config, sort_method: e.target.value})}
+                                className="w-full p-2 bg-gray-700 rounded text-white"
+                            >
+                                <option value="price_low_to_high">Price: Low to High</option>
+                                <option value="newest">Newest First</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={config.twelve_inch_only}
+                                    onChange={(e) => setConfig({...config, twelve_inch_only: e.target.checked})}
+                                    className="mr-2"
+                                />
+                                12" Only (Electronic Music)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="flex space-x-3 mt-6">
+                        <button
+                            onClick={onSave}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-medium"
+                            disabled={!config.token || !config.seller}
+                        >
+                            Save & Load Data
+                        </button>
+                        <button
+                            onClick={onCancel}
+                            className="flex-1 bg-gray-600 hover:bg-gray-700 py-2 rounded-lg font-medium"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // Main App Component
         const DiscogsMusicApp = () => {
             const [currentTrack, setCurrentTrack] = useState(0);
             const [tracks, setTracks] = useState([]);
             const [likedTracks, setLikedTracks] = useState([]);
             const [showFilters, setShowFilters] = useState(false);
             const [showLiked, setShowLiked] = useState(false);
+            const [showConfig, setShowConfig] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
             const [autoPlay, setAutoPlay] = useState(false);
 
-            // Enhanced mock data with real YouTube videos
-            const mockTracks = [
-                {
-                    id: 1,
-                    title: "Born Slippy (Nuxx)",
-                    artist: "Underworld",
-                    label: "Junior Boy's Own",
-                    year: 1995,
-                    price: 15.50,
-                    genre: "Electronic",
-                    style: "Techno",
-                    format: "12\"",
-                    videoUrl: "https://www.youtube.com/embed/iTFrCbQGyvM",
-                    wantlist: 245,
-                    collection: 520,
-                    ratio: 0.471
-                },
-                {
-                    id: 2,
-                    title: "Sandstorm",
-                    artist: "Darude",
-                    label: "16 Inch Records",
-                    year: 1999,
-                    price: 12.99,
-                    genre: "Electronic",
-                    style: "Trance",
-                    format: "12\"",
-                    videoUrl: "https://www.youtube.com/embed/y6120QOlsfU",
-                    wantlist: 180,
-                    collection: 450,
-                    ratio: 0.400
-                },
-                {
-                    id: 3,
-                    title: "One More Time",
-                    artist: "Daft Punk",
-                    label: "Virgin",
-                    year: 2000,
-                    price: 18.00,
-                    genre: "Electronic",
-                    style: "French House",
-                    format: "12\"",
-                    videoUrl: "https://www.youtube.com/embed/FGBhQbmPwH8",
-                    wantlist: 320,
-                    collection: 780,
-                    ratio: 0.410
-                },
-                {
-                    id: 4,
-                    title: "Blue Monday",
-                    artist: "New Order",
-                    label: "Factory Records",
-                    year: 1983,
-                    price: 22.50,
-                    genre: "Electronic",
-                    style: "Synth-pop",
-                    format: "12\"",
-                    videoUrl: "https://www.youtube.com/embed/FYH8DsU2WCk",
-                    wantlist: 420,
-                    collection: 890,
-                    ratio: 0.472
-                },
-                {
-                    id: 5,
-                    title: "Acid Tracks",
-                    artist: "Phuture",
-                    label: "Trax Records",
-                    year: 1987,
-                    price: 35.00,
-                    genre: "Electronic",
-                    style: "Acid House",
-                    format: "12\"",
-                    videoUrl: "https://www.youtube.com/embed/_3pHzKLBIWM",
-                    wantlist: 180,
-                    collection: 320,
-                    ratio: 0.563
-                }
-            ];
+            // Configuration state
+            const [config, setConfig] = useState(() => {
+                const saved = localStorage.getItem('discogsConfig');
+                return saved ? JSON.parse(saved) : {
+                    token: '',
+                    seller: 'mezabel',
+                    year_from: 1990,
+                    max_price: 20,
+                    fetch_items: 1000,
+                    top_items: 50,
+                    sort_method: 'price_low_to_high',
+                    twelve_inch_only: true
+                };
+            });
 
+            // Discogs API functions
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const fetchWithRetry = async (url, options, retries = 3) => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, {
+                            ...options,
+                            headers: {
+                                'Authorization': `Discogs token=${config.token}`,
+                                'User-Agent': 'VinylDiscoveryApp/1.0',
+                                ...options.headers
+                            }
+                        });
+
+                        if (response.status === 429) {
+                            await delay(2000 * (i + 1));
+                            continue;
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        return response;
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                        await delay(1000);
+                    }
+                }
+            };
+
+            const fetchInventoryPage = async (page = 1, perPage = 100) => {
+                const url = `https://api.discogs.com/users/${config.seller}/inventory?per_page=${perPage}&page=${page}`;
+                const response = await fetchWithRetry(url, {});
+                return response.json();
+            };
+
+            const fetchReleaseDetails = async (releaseId) => {
+                try {
+                    const url = `https://api.discogs.com/releases/${releaseId}`;
+                    const response = await fetchWithRetry(url, {});
+                    return response.json();
+                } catch (err) {
+                    console.warn(`Failed to fetch release ${releaseId}:`, err);
+                    return null;
+                }
+            };
+
+            const isVinylFormat = (formats) => {
+                if (!formats || !Array.isArray(formats)) return false;
+                const vinylFormats = config.twelve_inch_only ? 
+                    formats.filter(f => f.includes('12"')) :
+                    formats.filter(f => /^(7"|10"|12"|LP)/.test(f));
+                return vinylFormats.length > 0;
+            };
+
+            const convertToEmbedUrl = (url) => {
+                if (!url) return null;
+                
+                if (url.includes('youtube.com/watch')) {
+                    const videoId = url.match(/[?&]v=([^&]+)/)?.[1];
+                    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+                } else if (url.includes('youtu.be/')) {
+                    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+                    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+                }
+                
+                return null;
+            };
+
+            const loadDiscogsData = async () => {
+                if (!config.token || !config.seller) {
+                    setError('Please configure your Discogs token and seller name');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+
+                try {
+                    console.log('Starting Discogs data fetch...');
+                    
+                    // Step 1: Fetch inventory
+                    const allListings = [];
+                    let page = 1;
+                    let totalFetched = 0;
+
+                    while (totalFetched < config.fetch_items) {
+                        console.log(`Fetching page ${page}...`);
+                        const pageData = await fetchInventoryPage(page, 100);
+                        
+                        if (!pageData.listings || pageData.listings.length === 0) break;
+                        
+                        allListings.push(...pageData.listings);
+                        totalFetched += pageData.listings.length;
+                        
+                        if (page >= (pageData.pagination?.pages || 1)) break;
+                        page++;
+                        
+                        await delay(1100); // Rate limiting
+                    }
+
+                    console.log(`Fetched ${allListings.length} total listings`);
+
+                    // Step 2: Filter listings
+                    const filtered = allListings.filter(item => {
+                        const price = parseFloat(item.price?.value) || 0;
+                        const year = parseInt(item.release?.year) || 0;
+                        const formats = item.release?.format || [];
+                        
+                        return year >= config.year_from && 
+                               price <= config.max_price && 
+                               isVinylFormat(formats);
+                    });
+
+                    console.log(`${filtered.length} items after filtering`);
+
+                    // Step 3: Calculate want-to-have ratio and sort
+                    const withRatios = filtered.map(item => {
+                        const wantlist = parseInt(item.release?.stats?.community?.in_wantlist) || 0;
+                        const collection = parseInt(item.release?.stats?.community?.in_collection) || 0;
+                        const ratio = wantlist / (collection + 1);
+                        
+                        return {
+                            ...item,
+                            want_to_have_ratio: ratio,
+                            wantlist_count: wantlist,
+                            collection_count: collection
+                        };
+                    });
+
+                    const sorted = withRatios.sort((a, b) => b.want_to_have_ratio - a.want_to_have_ratio);
+                    const topItems = sorted.slice(0, config.top_items);
+
+                    console.log(`Processing top ${topItems.length} items...`);
+
+                    // Step 4: Fetch additional details (genres, videos) for top items
+                    const processedTracks = [];
+                    for (let i = 0; i < topItems.length; i++) {
+                        const item = topItems[i];
+                        console.log(`Processing item ${i + 1}/${topItems.length}: ${item.release?.title}`);
+
+                        let releaseDetails = null;
+                        if (item.release?.id) {
+                            releaseDetails = await fetchReleaseDetails(item.release.id);
+                            await delay(1100);
+                        }
+
+                        const formats = item.release?.format || [];
+                        const formatString = formats.join(', ');
+
+                        const track = {
+                            id: item.id || i,
+                            title: item.release?.title || 'Unknown Title',
+                            artist: item.release?.artist || 'Unknown Artist',
+                            label: Array.isArray(item.release?.label) ? 
+                                   item.release.label[0] : 
+                                   (item.release?.label || 'Unknown Label'),
+                            year: item.release?.year || 'Unknown',
+                            price: parseFloat(item.price?.value) || 0,
+                            genre: releaseDetails?.genres?.join(', ') || 'Unknown',
+                            style: releaseDetails?.styles?.join(', ') || 'Unknown',
+                            format: formatString || 'Unknown',
+                            videoUrl: null,
+                            wantlist: item.wantlist_count,
+                            collection: item.collection_count,
+                            ratio: item.want_to_have_ratio,
+                            discogsUrl: item.uri || `https://www.discogs.com/release/${item.release?.id}`
+                        };
+
+                        // Try to get video URL
+                        if (releaseDetails?.videos && releaseDetails.videos.length > 0) {
+                            const videoUrl = releaseDetails.videos[0].uri;
+                            track.videoUrl = convertToEmbedUrl(videoUrl);
+                        }
+
+                        processedTracks.push(track);
+                    }
+
+                    console.log(`Loaded ${processedTracks.length} tracks successfully!`);
+                    setTracks(processedTracks);
+                    setCurrentTrack(0);
+
+                } catch (err) {
+                    console.error('Error loading Discogs data:', err);
+                    setError(`Failed to load data: ${err.message}`);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // Load saved data on start
             useEffect(() => {
-                setTracks(mockTracks);
-                // Load liked tracks from localStorage
-                const saved = localStorage.getItem('likedTracks');
-                if (saved) {
-                    setLikedTracks(JSON.parse(saved));
+                const savedTracks = localStorage.getItem('discogsTracksCache');
+                const savedLiked = localStorage.getItem('likedTracks');
+                
+                if (savedTracks) {
+                    try {
+                        setTracks(JSON.parse(savedTracks));
+                    } catch (e) {
+                        console.warn('Failed to load cached tracks');
+                    }
+                }
+                
+                if (savedLiked) {
+                    try {
+                        setLikedTracks(JSON.parse(savedLiked));
+                    } catch (e) {
+                        console.warn('Failed to load liked tracks');
+                    }
+                }
+
+                // Show config if no token is set
+                if (!config.token) {
+                    setShowConfig(true);
                 }
             }, []);
+
+            // Save configuration
+            const saveConfig = async () => {
+                localStorage.setItem('discogsConfig', JSON.stringify(config));
+                setShowConfig(false);
+                await loadDiscogsData();
+            };
+
+            // Save tracks to cache when they change
+            useEffect(() => {
+                if (tracks.length > 0) {
+                    localStorage.setItem('discogsTracksCache', JSON.stringify(tracks));
+                }
+            }, [tracks]);
 
             const handleLike = (liked) => {
                 const track = tracks[currentTrack];
@@ -195,15 +497,31 @@
 
             const track = tracks[currentTrack];
 
+            // Show configuration panel if needed
+            if (showConfig) {
+                return (
+                    <div className="max-w-md mx-auto bg-gray-900 text-white min-h-screen">
+                        <ConfigPanel 
+                            config={config}
+                            setConfig={setConfig}
+                            onSave={saveConfig}
+                            onCancel={() => setShowConfig(false)}
+                        />
+                    </div>
+                );
+            }
+
             return (
                 <div className="max-w-md mx-auto bg-gray-900 text-white min-h-screen">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4">
-                        <h1 className="text-xl font-bold text-center">Mezabel's Vinyl</h1>
-                        <p className="text-center text-sm opacity-80">Top Picks by Want/Have Ratio</p>
+                        <h1 className="text-xl font-bold text-center">{config.seller}'s Vinyl</h1>
+                        <p className="text-center text-sm opacity-80">
+                            {config.year_from}+ • ≤${config.max_price} • Top {config.top_items}
+                        </p>
                     </div>
 
-                    {/* Filter & Settings Bar */}
+                    {/* Controls Bar */}
                     <div className="flex justify-between items-center p-4 bg-gray-800">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
@@ -220,21 +538,59 @@
                             <Heart size={16} />
                             <span>{likedTracks.length}</span>
                         </button>
+
+                        <button
+                            onClick={() => setShowConfig(true)}
+                            className="flex items-center space-x-2 px-3 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                        >
+                            <Settings size={16} />
+                        </button>
                     </div>
+
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="p-8 text-center">
+                            <div className="flex items-center justify-center mb-4">
+                                <Loader />
+                            </div>
+                            <p>Loading Discogs data...</p>
+                            <p className="text-sm text-gray-400 mt-2">This may take a few minutes</p>
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                        <div className="p-4 bg-red-900 text-red-100 mx-4 rounded-lg">
+                            <p className="font-semibold">Error:</p>
+                            <p className="text-sm">{error}</p>
+                            <button 
+                                onClick={() => setShowConfig(true)}
+                                className="mt-2 px-3 py-1 bg-red-700 rounded text-sm hover:bg-red-600"
+                            >
+                                Check Configuration
+                            </button>
+                        </div>
+                    )}
+
+                    {/* No Data State */}
+                    {!loading && !error && tracks.length === 0 && (
+                        <div className="p-8 text-center">
+                            <Music size={64} className="mx-auto mb-4 opacity-50" />
+                            <p className="mb-4">No tracks loaded</p>
+                            <button 
+                                onClick={() => setShowConfig(true)}
+                                className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+                            >
+                                Configure App
+                            </button>
+                        </div>
+                    )}
 
                     {/* Filters Panel */}
                     {showFilters && (
                         <div className="bg-gray-800 p-4 border-b border-gray-700">
                             <h3 className="font-semibold mb-2">Settings</h3>
                             <div className="space-y-2 text-sm">
-                                <label className="flex items-center">
-                                    <input type="checkbox" className="mr-2" />
-                                    Electronic Music Only
-                                </label>
-                                <label className="flex items-center">
-                                    <input type="checkbox" className="mr-2" />
-                                    12" Singles Only
-                                </label>
                                 <label className="flex items-center">
                                     <input 
                                         type="checkbox" 
@@ -244,6 +600,13 @@
                                     />
                                     Auto-play Videos
                                 </label>
+                                <button 
+                                    onClick={() => loadDiscogsData()}
+                                    className="w-full mt-2 px-3 py-2 bg-blue-600 rounded hover:bg-blue-700"
+                                    disabled={loading}
+                                >
+                                    Refresh Data
+                                </button>
                             </div>
                         </div>
                     )}
@@ -253,154 +616,3 @@
                         <div className="bg-gray-800 p-4 border-b border-gray-700 max-h-60 overflow-y-auto">
                             <h3 className="font-semibold mb-2">Liked Tracks ({likedTracks.length})</h3>
                             {likedTracks.length === 0 ? (
-                                <p className="text-gray-400 text-sm">No liked tracks yet. Start exploring!</p>
-                            ) : (
-                                likedTracks.map((track, index) => (
-                                    <div 
-                                        key={track.id} 
-                                        className="text-sm py-2 border-b border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-700 rounded px-2"
-                                        onClick={() => goToLikedTrack(track)}
-                                    >
-                                        <div className="font-medium">{track.artist} - {track.title}</div>
-                                        <div className="text-gray-400">${track.price} • {track.year}</div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    )}
-
-                    {/* Main Content */}
-                    {track && (
-                        <div className="p-4">
-                            {/* Video Player */}
-                            <div className="mb-4">
-                                <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                                    {track.videoUrl ? (
-                                        <iframe
-                                            width="100%"
-                                            height="100%"
-                                            src={`${track.videoUrl}${autoPlay ? '?autoplay=1' : ''}`}
-                                            frameBorder="0"
-                                            allowFullScreen
-                                            className="w-full h-full"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center justify-center h-full">
-                                            <div className="text-center">
-                                                <Music size={48} className="mx-auto mb-2 opacity-50" />
-                                                <p className="text-sm opacity-50">No video available</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Track Info */}
-                            <div className="bg-gray-800 rounded-lg p-4 mb-4">
-                                <h2 className="text-lg font-bold mb-1">{track.title}</h2>
-                                <p className="text-gray-300 mb-3">{track.artist}</p>
-                                <div className="grid grid-cols-2 gap-2 text-sm">
-                                    <div>
-                                        <span className="text-gray-400">Label:</span> {track.label}
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400">Year:</span> {track.year}
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400">Price:</span> ${track.price}
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400">Format:</span> {track.format}
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400">Genre:</span> {track.genre}
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-400">Style:</span> {track.style}
-                                    </div>
-                                </div>
-                                
-                                <div className="mt-3 pt-3 border-t border-gray-700">
-                                    <div className="text-sm">
-                                        <div className="flex justify-between">
-                                            <span>Want: {track.wantlist}</span>
-                                            <span>Have: {track.collection}</span>
-                                        </div>
-                                        <div className="text-center mt-1">
-                                            <span className="text-green-400 font-semibold">Ratio: {track.ratio.toFixed(3)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Like/Dislike Buttons */}
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                <button
-                                    onClick={() => handleLike(true)}
-                                    className="flex items-center justify-center space-x-2 py-4 bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors active:bg-green-800"
-                                >
-                                    <ThumbsUp size={24} />
-                                    <span>Like</span>
-                                </button>
-                                <button
-                                    onClick={() => handleLike(false)}
-                                    className="flex items-center justify-center space-x-2 py-4 bg-red-600 rounded-lg font-semibold hover:bg-red-700 transition-colors active:bg-red-800"
-                                >
-                                    <ThumbsDown size={24} />
-                                    <span>Pass</span>
-                                </button>
-                            </div>
-
-                            {/* Navigation */}
-                            <div className="grid grid-cols-4 gap-2 mb-4">
-                                <button
-                                    onClick={prevTrack}
-                                    className="flex items-center justify-center py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors active:bg-gray-800"
-                                    disabled={currentTrack === 0}
-                                >
-                                    <SkipBack size={20} />
-                                </button>
-                                <button
-                                    onClick={nextTrack}
-                                    className="flex items-center justify-center py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors active:bg-gray-800"
-                                    disabled={currentTrack === tracks.length - 1}
-                                >
-                                    <SkipForward size={20} />
-                                </button>
-                                <button
-                                    onClick={() => skipTracks(2)}
-                                    className="py-3 bg-blue-600 rounded-lg text-sm hover:bg-blue-700 transition-colors active:bg-blue-800"
-                                >
-                                    +2
-                                </button>
-                                <button
-                                    onClick={() => skipTracks(3)}
-                                    className="py-3 bg-blue-600 rounded-lg text-sm hover:bg-blue-700 transition-colors active:bg-blue-800"
-                                >
-                                    +3
-                                </button>
-                            </div>
-
-                            {/* Progress */}
-                            <div className="text-center text-sm text-gray-400">
-                                Track {currentTrack + 1} of {tracks.length}
-                                <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
-                                    <div
-                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${((currentTrack + 1) / tracks.length) * 100}%` }}
-                                    ></div>
-                                </div>
-                                <div className="mt-2 text-xs">
-                                    {Math.round(((currentTrack + 1) / tracks.length) * 100)}% complete
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        ReactDOM.render(<DiscogsMusicApp />, document.getElementById('root'));
-    </script>
-</body>
-</html>
